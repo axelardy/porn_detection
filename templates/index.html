@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Upload and Prediction</title>
+    <!-- Include Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS Styles -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        #upload-form {
+            margin-bottom: 20px;
+        }
+
+        #prediction-result {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        #image-preview-container {
+            width: 200px; /* Set the width for the image preview container */
+            height: 200px; /* Set the height for the image preview container */
+            overflow: hidden; /* Ensure the image does not exceed the container size */
+        }
+
+        #preview-image {
+            max-width: 100%; /* Ensure the image fits within the container width */
+            max-height: 100%; /* Ensure the image fits within the container height */
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-4">Image Upload and Prediction</h1>
+        <form action="/predict" method="POST" enctype="multipart/form-data" id="upload-form">
+            <div class="input-group mb-3">
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="image-input" name="image" accept="image/*">
+                    <label class="custom-file-label" for="image-input">Choose file</label>
+                </div>
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="submit">Upload and Predict</button>
+                </div>
+            </div>
+        </form>
+        <div id="image-preview-container" class="mb-4">
+            <img src="#" alt="Image Preview" id="preview-image">
+        </div>
+        <div id="prediction-result">
+            <h2>Prediction Result:</h2>
+            <p id="prediction-text"></p>
+        </div>
+    </div>
+
+    <!-- Include Bootstrap JS and jQuery (optional) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        const imageInput = document.getElementById('image-input');
+        const previewImage = document.getElementById('preview-image');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const predictionResult = document.getElementById('prediction-result');
+        const predictionText = document.getElementById('prediction-text');
+
+        // Function to clear prediction result and hide image preview
+        function resetPredictionOutput() {
+            predictionResult.style.display = 'none';
+            predictionText.textContent = '';
+            previewImage.style.display = 'none';
+            imageInput.value = ''; // Clear the file input
+        }
+
+        // Reset prediction output when the file input is clicked
+        imageInput.addEventListener('click', resetPredictionOutput);
+
+        imageInput.addEventListener('change', function () {
+            const file = imageInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function () {
+                        const maxWidth = imagePreviewContainer.clientWidth;
+                        const maxHeight = imagePreviewContainer.clientHeight;
+                        const aspectRatio = img.width / img.height;
+                        let newWidth, newHeight;
+
+                        if (img.width > maxWidth) {
+                            newWidth = maxWidth;
+                            newHeight = newWidth / aspectRatio;
+                        } else if (img.height > maxHeight) {
+                            newHeight = maxHeight;
+                            newWidth = newHeight * aspectRatio;
+                        } else {
+                            newWidth = img.width;
+                            newHeight = img.height;
+                        }
+
+                        previewImage.style.display = 'block';
+                        previewImage.src = img.src;
+                        previewImage.style.width = newWidth + 'px';
+                        previewImage.style.height = newHeight + 'px';
+                    };
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewImage.style.display = 'none';
+            }
+        });
+        document.getElementById('upload-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const predictionResult = document.getElementById('prediction-result');
+            const predictionText = document.getElementById('prediction-text');
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                predictionText.textContent = 'The model predicts: ' + data.prediction;
+                predictionResult.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                predictionText.textContent = 'Error occurred during prediction.';
+                predictionResult.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
